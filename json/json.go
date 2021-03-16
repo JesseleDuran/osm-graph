@@ -7,6 +7,21 @@ import (
 	"os"
 )
 
+func NewDecoder(path string) *json.Decoder {
+	// Open file and create a decoder
+	jsonFile, _ := os.Open(path)
+	defer jsonFile.Close()
+
+	decoder := json.NewDecoder(jsonFile)
+	_, err := decoder.Token()
+
+	if err != nil {
+		log.Panic("Error creating a new decoder for", path, err)
+	}
+
+	return decoder
+}
+
 // Write a .json file on the given path from the given value.
 // The function returns the created file name.
 func Write(name string, content interface{}) string {

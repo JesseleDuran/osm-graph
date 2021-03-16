@@ -1,80 +1,64 @@
 package graph
 
 import (
-  "encoding/json"
-  "log"
-  "os"
-
-  "github.com/JesseleDuran/osm-graph/coordinates"
-  "github.com/golang/geo/s2"
+	"github.com/JesseleDuran/osm-graph/coordinates"
+	"github.com/JesseleDuran/osm-graph/json"
+	"github.com/golang/geo/s2"
 )
 
+// Represents a set of nodes related between them.
 type Graph struct {
-  Nodes Nodes
+	Nodes Nodes
 }
 
-func (g *Graph) AddNode(n Node) {
-  g.Nodes[n.ID] = n
+// newEmptyGraph creates a graph with 0 vertices.
+func newEmptyGraph() Graph {
+	return Graph{Nodes: make(Nodes, 0)}
 }
 
-func FromJSONGraphFileStream(path string, setWeight SetWeight) Graph {
-  g := Graph{Nodes: make(Nodes, 0)}
-  jsonFile, _ := os.Open(path)
-  defer jsonFile.Close()
-  dec := json.NewDecoder(jsonFile)
-  _, err := dec.Token()
+// BuildFromJsonFile creates a new graph from a json file.
+func BuildFromJsonFile(path string) Graph {
+	g := newEmptyGraph()
+	decoder := json.NewDecoder(path)
+	for decoder.More() {
+		nodes := make([]EncodedNode, 0)
+		if decoder.Decode(&nodes) == nil {
+			for i := 0; i < len(nodes)-1; i++ {
+				g.RelateNodesByID(
+					s2.CellID(nodes[i].CellId), s2.CellID(nodes[i+1].CellId),
+				)
+			}
+		}
+	}
+	return g
+}
 
-  if err != nil {
-    log.Printf("Error reading open bracket [ during JSON parsing %s", err.Error())
-    return g
-  }
+// Add note to the given graph.
+func (g *Graph) AddNodes(nodes ...Node) {
+	for _, n := range nodes {
+		g.Nodes[n.ID] = n
+	}
+}
 
-  for dec.More() {
-    type NodeFile struct {
-      ID     int64
-      CellId uint64
-    }
-    e := make([]NodeFile, 0)
+// FindOrCreateNode find a node on the graph by the given ID.
+// if the node does not exists then is created.
+func (g *Graph) FindNodeOrCreate(id s2.CellID) *Node {
+	node, ok := g.Nodes[id]
+	if !ok {
+		node = Node{ID: id, Edges: make(map[s2.CellID]Edge)}
+		g.AddNodes(node)
+	}
+	return &node
+}
 
-    err := dec.Decode(&e)
-    if err != nil {
-      log.Printf("Error reading JSON structure during parsing %s", err.Error())
-      continue
-      //return g
-    }
-    for i := 0; i < len(e)-1; i++ {
-      source := Node{}
-      destiny := Node{}
+// RelateNodesByID relate two nodes using its IDs.
+func (g *Graph) RelateNodesByID(a, b s2.CellID) {
+	nodeA, nodeB := g.FindNodeOrCreate(a), g.FindNodeOrCreate(b)
+	pointA := coordinates.FromS2LatLng(nodeA.ID.LatLng())
+	pointB := coordinates.FromS2LatLng(nodeB.ID.LatLng())
+	w := coordinates.Distance(pointA, pointB)
 
-      if v, ok := g.Nodes[s2.CellID(e[i].CellId)]; !ok {
-        source = Node{ID: s2.CellID(e[i].CellId), Neighbors: make(Edges, 0)}
-      } else {
-        source = v
-      }
-
-      if v, ok := g.Nodes[s2.CellID(e[i+1].CellId)]; !ok {
-        destiny = Node{ID: s2.CellID(e[i+1].CellId), Neighbors: make(Edges, 0)}
-      } else {
-        destiny = v
-      }
-
-
-      w := 0.0
-      sourcePoint := coordinates.FromS2LatLng(source.ID.LatLng())
-      destinyPoint := coordinates.FromS2LatLng(destiny.ID.LatLng())
-      if setWeight == nil {
-        w = coordinates.Distance(sourcePoint, destinyPoint)
-      } else {
-        w = setWeight(sourcePoint, destinyPoint)
-      }
-
-      source.Neighbors[destiny.ID] = Edge{Weight: w}
-      destiny.Neighbors[source.ID] = Edge{Weight: w}
-
-      g.Nodes[source.ID] = source
-      g.Nodes[destiny.ID] = destiny
-
-    }
-  }
-  return g
+	// The relation of nodes is bi-directional.
+	nodeA.Edges[nodeB.ID] = Edge{Weight: w}
+	nodeB.Edges[nodeA.ID] = Edge{Weight: w}
 }
