@@ -7,10 +7,9 @@ import (
 	"os"
 )
 
-func NewDecoder(path string) *json.Decoder {
+func NewDecoder(path string) (*json.Decoder, *os.File) {
 	// Open file and create a decoder
 	jsonFile, _ := os.Open(path)
-	defer jsonFile.Close()
 
 	decoder := json.NewDecoder(jsonFile)
 	_, err := decoder.Token()
@@ -19,7 +18,7 @@ func NewDecoder(path string) *json.Decoder {
 		log.Panic("Error creating a new decoder for", path, err)
 	}
 
-	return decoder
+	return decoder, jsonFile
 }
 
 // Write a .json file on the given path from the given value.

@@ -19,7 +19,8 @@ func newEmptyGraph() Graph {
 // BuildFromJsonFile creates a new graph from a json file.
 func BuildFromJsonFile(path string) Graph {
 	g := newEmptyGraph()
-	decoder := json.NewDecoder(path)
+	decoder, file := json.NewDecoder(path)
+	defer file.Close()
 	for decoder.More() {
 		nodes := make([]EncodedNode, 0)
 		if decoder.Decode(&nodes) == nil {

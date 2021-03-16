@@ -55,3 +55,7 @@ func TestGraph_RelateNodes(t *testing.T) {
 		t.Error("The nodes are not related", nodeA.Edges, nodeB.Edges)
 	}
 }
+
+func TestBuildFromJsonFile(t *testing.T) {
+	BuildFromJsonFile("testdata/osm-graph-sp-16.json")
+}
