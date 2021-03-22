@@ -17,7 +17,7 @@ func newEmptyGraph() Graph {
 }
 
 // BuildFromJsonFile creates a new graph from a json file.
-func BuildFromJsonFile(path string) Graph {
+func BuildFromJsonFile(path string, setWeight SetWeight) Graph {
 	g := newEmptyGraph()
 	decoder, file := json.NewDecoder(path)
 	defer file.Close()
@@ -26,7 +26,7 @@ func BuildFromJsonFile(path string) Graph {
 		if decoder.Decode(&nodes) == nil {
 			for i := 0; i < len(nodes)-1; i++ {
 				g.RelateNodesByID(
-					s2.CellID(nodes[i].CellId), s2.CellID(nodes[i+1].CellId),
+					s2.CellID(nodes[i].CellId), s2.CellID(nodes[i+1].CellId), setWeight,
 				)
 			}
 		}
@@ -53,11 +53,16 @@ func (g *Graph) FindNodeOrCreate(id s2.CellID) *Node {
 }
 
 // RelateNodesByID relate two nodes using its IDs.
-func (g *Graph) RelateNodesByID(a, b s2.CellID) {
+func (g *Graph) RelateNodesByID(a, b s2.CellID, setWeight SetWeight) {
+	var w float64
 	nodeA, nodeB := g.FindNodeOrCreate(a), g.FindNodeOrCreate(b)
 	pointA := coordinates.FromS2LatLng(nodeA.ID.LatLng())
 	pointB := coordinates.FromS2LatLng(nodeB.ID.LatLng())
-	w := coordinates.Distance(pointA, pointB)
+	if setWeight == nil {
+		w = coordinates.Distance(pointA, pointB)
+	} else {
+		w = setWeight(pointA, pointB)
+	}
 
 	// The relation of nodes is bi-directional.
 	nodeA.Edges[nodeB.ID] = Edge{Weight: w}
