@@ -47,7 +47,7 @@ func TestGraph_FindNodeOrCreate(t *testing.T) {
 func TestGraph_RelateNodes(t *testing.T) {
 	idA, idB := s2.CellIDFromToken("94ce50"), s2.CellIDFromToken("94ce50")
 	g := newEmptyGraph()
-	g.RelateNodesByID(idA, idB)
+	g.RelateNodesByID(idA, idB, nil)
 
 	nodeA, nodeB := g.FindNodeOrCreate(idA), g.FindNodeOrCreate(idB)
 
@@ -57,5 +57,5 @@ func TestGraph_RelateNodes(t *testing.T) {
 }
 
 func TestBuildFromJsonFile(t *testing.T) {
-	BuildFromJsonFile("testdata/osm-graph-sp-16.json")
+	BuildFromJsonFile("testdata/osm-graph-sp-16.json", nil)
 }

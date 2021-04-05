@@ -7,11 +7,11 @@ type Response struct {
   TotalWeight float64
 }
 
+type Legs []Leg
+
 type Leg struct {
   Points [2]Point
 }
-
-type Legs []Leg
 
 type Point struct {
   Point coordinates.Coordinates

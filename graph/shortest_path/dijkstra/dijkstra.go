@@ -1,12 +1,9 @@
 package dijkstra
 
 import (
-  "log"
   "math"
 
-  "github.com/JesseleDuran/osm-graph/coordinates"
   "github.com/JesseleDuran/osm-graph/graph"
-  "github.com/JesseleDuran/osm-graph/graph/shortest_path"
   "github.com/JesseleDuran/osm-graph/graph/shortest_path/dijkstra/heap"
   "github.com/golang/geo/s2"
 )
@@ -14,20 +11,11 @@ import (
 const INFINITE = math.MaxInt64
 
 type Dijkstra struct {
-  graph graph.Graph
+  Graph graph.Graph
 }
 
 type Previous map[s2.CellID]s2.CellID
 type PathWeight map[s2.CellID]float64
-
-func (d Dijkstra) ShortestPath(start, end coordinates.Coordinates) shortest_path.Response {
-  startCellID, endCellID := start.ToToken(), end.ToToken()
-  pw, p := d.FromCellIDs(startCellID, endCellID)
-  return shortest_path.Response{
-    Leg:         toLegs(startCellID, endCellID, p),
-    TotalWeight: pw[endCellID],
-  }
-}
 
 func (d Dijkstra) FromCellIDs(start, end s2.CellID) (PathWeight, Previous) {
   //maps from each node to the total weight of the total shortest path.
@@ -41,7 +29,7 @@ func (d Dijkstra) FromCellIDs(start, end s2.CellID) (PathWeight, Previous) {
   remaining.Insert(heap.Node{Value: start, Cost: 0})
 
   // initialize pathWeight all to infinite value.
-  for _, v := range d.graph.Nodes {
+  for _, v := range d.Graph.Nodes {
     pathWeight[v.ID] = INFINITE
   }
   //start node distance to itself is 0.
@@ -58,17 +46,18 @@ func (d Dijkstra) FromCellIDs(start, end s2.CellID) (PathWeight, Previous) {
     min, _ := remaining.Min()
     visit[min.Value] = true
     remaining.DeleteMin()
-    if min.Value == end {
-      break
+    if min.Value.ToToken() == end.ToToken() {
+      return pathWeight, previous
     }
-    // if the node has edged, the loop through it.
-    if v, ok := d.graph.Nodes[min.Value]; ok {
+    // if the node has edges, the loop through it.
+    if v, ok := d.Graph.Nodes[min.Value]; ok {
       //change to normal for
-      for nodeNeighbor, e := range v.Neighbors {
+      for nodeNeighbor, e := range v.Edges {
 
         if visit[nodeNeighbor] {
           continue //change to negative condition
         }
+        visit[nodeNeighbor] = true
 
         // the value is the one of the current node plus the weight(a, neighbor)
         currentPathValue := pathWeight[min.Value] + e.Weight
@@ -99,7 +88,7 @@ func path(start, end s2.CellID, previous Previous) []s2.CellID {
     prev = previous[end]
     result = append(result, prev)
     end = prev
-    log.Println(prev, end)
+    //log.Println(prev, end)
   }
 
   resultSorted := make([]s2.CellID, len(result))
@@ -109,24 +98,4 @@ func path(start, end s2.CellID, previous Previous) []s2.CellID {
     j++
   }
   return resultSorted
-}
-
-func toLegs(start, end s2.CellID, previous Previous) shortest_path.Legs {
-  path := path(start, end, previous)
-  legs := make(shortest_path.Legs, len(path))
-  for i := 0; i < len(path)-1; i++ {
-    legs[i] = shortest_path.Leg{
-      Points: [2]shortest_path.Point{
-        {
-          Point: coordinates.FromS2LatLng(path[i].LatLng()),
-          Name:  "",
-        },
-        {
-          Point: coordinates.FromS2LatLng(path[i+1].LatLng()),
-          Name:  "",
-        },
-      },
-    }
-  }
-  return legs
 }
