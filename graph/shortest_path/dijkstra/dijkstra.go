@@ -3,7 +3,9 @@ package dijkstra
 import (
   "math"
 
+  "github.com/JesseleDuran/osm-graph/coordinates"
   "github.com/JesseleDuran/osm-graph/graph"
+  "github.com/JesseleDuran/osm-graph/graph/shortest_path"
   "github.com/JesseleDuran/osm-graph/graph/shortest_path/dijkstra/heap"
   "github.com/golang/geo/s2"
 )
@@ -16,6 +18,20 @@ type Dijkstra struct {
 
 type Previous map[s2.CellID]s2.CellID
 type PathWeight map[s2.CellID]float64
+
+func (d Dijkstra) FromCoordinates(origin, destiny coordinates.Coordinates) shortest_path.Response {
+  originCell := s2.CellFromLatLng(
+    s2.LatLngFromDegrees(origin.Lat, origin.Lng)).ID().Parent(17)
+  destinyCell := s2.CellFromLatLng(
+    s2.LatLngFromDegrees(destiny.Lat, destiny.Lng)).ID().Parent(17)
+  _, prev := d.FromCellIDs(originCell, destinyCell)
+
+  return shortest_path.Response{
+    Steps:       Steps(path(originCell, destinyCell, prev), d.Graph),
+    TotalWeight: 0,
+    Polyline:    pathPolyline(originCell, destinyCell, prev),
+  }
+}
 
 func (d Dijkstra) FromCellIDs(start, end s2.CellID) (PathWeight, Previous) {
   //maps from each node to the total weight of the total shortest path.
@@ -98,4 +114,60 @@ func path(start, end s2.CellID, previous Previous) []s2.CellID {
     j++
   }
   return resultSorted
+}
+
+//key : end, value: prev
+func pathPolyline(start, end s2.CellID, previous Previous) [][2]float64 {
+  result := make([][2]float64, 0)
+  result = append(result, [2]float64{
+    end.LatLng().Lng.Degrees(),
+    end.LatLng().Lat.Degrees(),
+  })
+  var prev s2.CellID
+  _, startOk := previous[start]
+  _, endOk := previous[end]
+  if !startOk && !endOk {
+    return result
+  }
+
+  for prev != start {
+    prev = previous[end]
+    result = append(result, [2]float64{
+      prev.LatLng().Lng.Degrees(),
+      prev.LatLng().Lat.Degrees(),
+    })
+    end = prev
+    //log.Println(prev, end)
+  }
+
+  resultSorted := make([][2]float64, len(result))
+  j := 0
+  for i := len(result) - 1; i >= 0; i-- {
+    resultSorted[j] = result[i]
+    j++
+  }
+  return resultSorted
+}
+
+func Steps(path []s2.CellID, graph graph.Graph) shortest_path.Steps {
+  result := make(shortest_path.Steps, 0)
+  for i := 0; i < len(path)-1; i++ {
+    start := graph.Nodes[path[i]]
+    end := graph.Nodes[path[i+1]]
+    result = append(result, shortest_path.Step{
+      Weight:        0,
+      StartAddress:  start.Name,
+      EndAddress:    end.Name,
+      StartLocation: coordinates.Coordinates{
+        Lat: start.ID.LatLng().Lat.Degrees(),
+        Lng: start.ID.LatLng().Lng.Degrees(),
+      },
+      EndLocation:  coordinates.Coordinates{
+        Lat: end.ID.LatLng().Lat.Degrees(),
+        Lng: end.ID.LatLng().Lng.Degrees(),
+      },
+    })
+  }
+
+  return result
 }
