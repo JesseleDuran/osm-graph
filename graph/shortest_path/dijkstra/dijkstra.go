@@ -120,8 +120,8 @@ func path(start, end s2.CellID, previous Previous) []s2.CellID {
 func pathPolyline(start, end s2.CellID, previous Previous) [][2]float64 {
   result := make([][2]float64, 0)
   result = append(result, [2]float64{
-    end.LatLng().Lat.Degrees(),
     end.LatLng().Lng.Degrees(),
+    end.LatLng().Lat.Degrees(),
   })
   var prev s2.CellID
   _, startOk := previous[start]
