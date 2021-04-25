@@ -133,8 +133,8 @@ func pathPolyline(start, end s2.CellID, previous Previous) [][2]float64 {
   for prev != start {
     prev = previous[end]
     result = append(result, [2]float64{
-      prev.LatLng().Lat.Degrees(),
       prev.LatLng().Lng.Degrees(),
+      prev.LatLng().Lat.Degrees(),
     })
     end = prev
     //log.Println(prev, end)
