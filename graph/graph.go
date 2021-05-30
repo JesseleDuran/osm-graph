@@ -1,6 +1,7 @@
 package graph
 
 import (
+  "github.com/JesseleDuran/osm-graph/cell"
   "github.com/JesseleDuran/osm-graph/coordinates"
   "github.com/JesseleDuran/osm-graph/json"
   "github.com/golang/geo/s2"
@@ -71,3 +72,17 @@ func (g *Graph) RelateNodesByID(a, b EncodedNode, setWeight SetWeight) {
   nodeA.Edges[nodeB.ID] = Edge{Weight: w}
   nodeB.Edges[nodeA.ID] = Edge{Weight: w}
 }
+
+func (g *Graph) FindNodeRecursive(cid s2.CellID) s2.CellID {
+  if _, ok := g.Nodes[cid]; ok {
+    return cid
+  }
+  neighbors := cell.Neighbors(cid, 1)
+  for _, n := range neighbors {
+    if _, ok := g.Nodes[n]; ok {
+      return n
+    }
+  }
+  return s2.CellID(0)
+}
+

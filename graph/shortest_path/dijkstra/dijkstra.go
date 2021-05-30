@@ -20,10 +20,8 @@ type Previous map[s2.CellID]s2.CellID
 type PathWeight map[s2.CellID]float64
 
 func (d Dijkstra) FromCoordinates(origin, destiny coordinates.Coordinates) shortest_path.Response {
-  originCell := s2.CellFromLatLng(
-    s2.LatLngFromDegrees(origin.Lat, origin.Lng)).ID().Parent(17)
-  destinyCell := s2.CellFromLatLng(
-    s2.LatLngFromDegrees(destiny.Lat, destiny.Lng)).ID().Parent(17)
+  originCell := d.Graph.FindNodeRecursive(origin.ToCellID())
+  destinyCell := d.Graph.FindNodeRecursive(destiny.ToCellID())
   _, prev := d.FromCellIDs(originCell, destinyCell)
 
   return shortest_path.Response{
@@ -155,14 +153,14 @@ func Steps(path []s2.CellID, graph graph.Graph) shortest_path.Steps {
     start := graph.Nodes[path[i]]
     end := graph.Nodes[path[i+1]]
     result = append(result, shortest_path.Step{
-      Weight:        0,
-      StartAddress:  start.Name,
-      EndAddress:    end.Name,
+      Weight:       0,
+      StartAddress: start.Name,
+      EndAddress:   end.Name,
       StartLocation: coordinates.Coordinates{
         Lat: start.ID.LatLng().Lat.Degrees(),
         Lng: start.ID.LatLng().Lng.Degrees(),
       },
-      EndLocation:  coordinates.Coordinates{
+      EndLocation: coordinates.Coordinates{
         Lat: end.ID.LatLng().Lat.Degrees(),
         Lng: end.ID.LatLng().Lng.Degrees(),
       },

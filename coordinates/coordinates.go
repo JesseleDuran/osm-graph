@@ -41,7 +41,7 @@ func FromS2LatLng(ll s2.LatLng) Coordinates {
   }
 }
 
-func (c Coordinates) ToToken() s2.CellID {
+func (c Coordinates) ToCellID() s2.CellID {
   return s2.CellFromPoint(s2.PointFromLatLng(
     s2.LatLngFromDegrees(c.Lat, c.Lng))).ID().Parent(17) //19
 }
