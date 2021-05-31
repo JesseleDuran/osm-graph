@@ -22,11 +22,11 @@ type PathWeight map[s2.CellID]float64
 func (d Dijkstra) FromCoordinates(origin, destiny coordinates.Coordinates) shortest_path.Response {
   originCell := d.Graph.FindNodeRecursive(origin.ToCellID())
   destinyCell := d.Graph.FindNodeRecursive(destiny.ToCellID())
-  _, prev := d.FromCellIDs(originCell, destinyCell)
+  weight, prev := d.FromCellIDs(originCell, destinyCell)
 
   return shortest_path.Response{
     Steps:       Steps(path(originCell, destinyCell, prev), d.Graph),
-    TotalWeight: 0,
+    TotalWeight: weight[destinyCell],
     Polyline:    pathPolyline(originCell, destinyCell, prev),
   }
 }
